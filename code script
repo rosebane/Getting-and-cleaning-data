@@ -1,0 +1,48 @@
+## load activity dataset from test and train 
+testact <- read.table("test/Y_test.txt" , header = FALSE)
+trainact <- read.table("train/Y_train.txt", header = FALSE)
+
+## load subjects dataset from test and train
+testsub  <- read.table("test/subject_test.txt", header = FALSE)
+trainsub <- read.table("train/subject_train.txt", header = FALSE)
+
+## load features dataset from test and train
+testfeat  <- read.table("test/X_test.txt", header = FALSE)
+trainfeat <- read.table("train/X_train.txt", header = FALSE)
+
+
+### Merges the training and the test sets to create one data set.
+activity <- rbind(testact, trainact)
+subject <- rbind(testsub, trainsub)
+features <- rbind(testfeat, trainfeat)
+
+labels <- read.table("activity_labels.txt", header=FALSE)
+activity$V1 <- factor(activity$V1, levels=as.integer(labels$V1), labels=labels$V2)
+
+## Name the activity, subject and features columns
+names(activity) <- c("activity")
+names(subject) <- c("subject")
+featurestxt <- read.table("features.txt", head=FALSE)
+names(features)<- featurestxt$V2
+
+### Extracts only the measurements on the mean and standard deviation for each measurement.
+meanstdev<-c(as.character(featurestxt$V2[grep("mean\\(\\)|std\\(\\)", featurestxt$V2)]))
+subdata<-subset(features,select=meanstdev)
+
+## combines data set with activity names and labels
+subjectactivity <- cbind(subject, activity)
+finaldata <- cbind(subdata, subjectactivity)
+
+names(finaldata)<-gsub("^t", "time", names(finaldata))
+names(finaldata)<-gsub("^f", "frequency", names(finaldata))
+
+## Create new data set with means of activity and subject
+suppressWarnings(cleandata <- aggregate(finaldata, by = list(finaldata$subject, finaldata$activity), FUN = mean))
+colnames(cleandata)[1] <- "Subject"
+names(cleandata)[2] <- "Activity"
+
+## removes average and standard deviation 
+cleandata <- cleandata[1:68]
+
+## writing the clean data to a text file
+write.table(cleandata, file="cleandata.txt", row.name=FALSE)
